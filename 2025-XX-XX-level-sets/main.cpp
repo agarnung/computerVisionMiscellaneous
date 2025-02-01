@@ -303,51 +303,14 @@ int main()
 
     /// Encontrando el número exacta de level sets que tiene la imagen
     {
-        const std::string input_image_path = "/media/sf_shared_folder/ImageProcessingSamples/kiel.pgm";
-        const std::string save_path = "/opt/proyectos/computerVisionMiscellaneous/2025-XX-XX-level-sets/data/";
-
-        double totalLength;
-        cv::Mat img = cv::imread(input_image_path, cv::IMREAD_GRAYSCALE);
-        cv::resize(img, img, cv::Size(800, 600), 0.0, 0.0, cv::INTER_NEAREST_EXACT);
-
-        cv::GaussianBlur(img, img, cv::Size(33, 33), 0.0, 0.0, cv::BORDER_DEFAULT);
-
-        cv::Mat hist = drawHist(img, 3, 300);
-
-        std::set<int> uniqueLevels = getUniqueLevels(img);
-        std::cout << "Número de level sets únicos: " << uniqueLevels.size() << std::endl;
-        std::cout << "Valores de intensidad presentes: ";
-        for (int level : uniqueLevels)
-        {
-            std::cout << level << " ";
-        }
-        std::cout << std::endl;
-
-        int thickness = 1;
-        std::vector<int> intensityLevels(uniqueLevels.begin(), uniqueLevels.end());
-
-        cv::Mat displayImage = showLevelSets(img, totalLength, intensityLevels, thickness);
-
-        double tv_iso = computeTotalVariationIsotropic(img);
-        double tv_anis = computeTotalVariationAnisotropic(img);
-        std::cout << "Variación Total iso. de la imagen: " << tv_iso << std::endl;
-        std::cout << "Variación Total aniso. de la imagen: " << tv_anis << std::endl;
-        std::cout << "Perímetro de los level sets: " << totalLength << std::endl;
-
-        cv::imwrite(save_path + "hist.png", hist);
-        cv::imwrite(save_path + "original.png", img);
-        cv::imwrite(save_path + "displayImage.png", displayImage);
-    }
-
-    /// Lo mismo que antes pero con una imagen de BV sintética
-    {
+        // const std::string input_image_path = "/media/sf_shared_folder/ImageProcessingSamples/kiel.pgm";
         // const std::string save_path = "/opt/proyectos/computerVisionMiscellaneous/2025-XX-XX-level-sets/data/";
 
         // double totalLength;
-        // cv::Mat img = generateGaussianImage(1920, 1080);
-        // img.convertTo(img, CV_8UC1, 255.0);
+        // cv::Mat img = cv::imread(input_image_path, cv::IMREAD_GRAYSCALE);
+        // cv::resize(img, img, cv::Size(800, 600), 0.0, 0.0, cv::INTER_NEAREST_EXACT);
 
-        // cv::GaussianBlur(img, img, cv::Size(3, 3), 0.0, 0.0, cv::BORDER_DEFAULT);
+        // cv::GaussianBlur(img, img, cv::Size(21, 21), 0.0, 0.0, cv::BORDER_DEFAULT);
 
         // cv::Mat hist = drawHist(img, 3, 300);
 
@@ -374,6 +337,43 @@ int main()
         // cv::imwrite(save_path + "hist.png", hist);
         // cv::imwrite(save_path + "original.png", img);
         // cv::imwrite(save_path + "displayImage.png", displayImage);
+    }
+
+    /// Lo mismo que antes pero con una imagen de BV sintética
+    {
+        const std::string save_path = "/opt/proyectos/computerVisionMiscellaneous/2025-XX-XX-level-sets/data/";
+
+        double totalLength;
+        cv::Mat img = generateGaussianImage(1920, 1080);
+        img.convertTo(img, CV_8UC1, 255.0);
+
+        cv::GaussianBlur(img, img, cv::Size(3, 3), 0.0, 0.0, cv::BORDER_DEFAULT);
+
+        cv::Mat hist = drawHist(img, 3, 300);
+
+        std::set<int> uniqueLevels = getUniqueLevels(img);
+        std::cout << "Número de level sets únicos: " << uniqueLevels.size() << std::endl;
+        std::cout << "Valores de intensidad presentes: ";
+        for (int level : uniqueLevels)
+        {
+            std::cout << level << " ";
+        }
+        std::cout << std::endl;
+
+        int thickness = 1;
+        std::vector<int> intensityLevels(uniqueLevels.begin(), uniqueLevels.end());
+
+        cv::Mat displayImage = showLevelSets(img, totalLength, intensityLevels, thickness);
+
+        double tv_iso = computeTotalVariationIsotropic(img);
+        double tv_anis = computeTotalVariationAnisotropic(img);
+        std::cout << "Variación Total iso. de la imagen: " << tv_iso << std::endl;
+        std::cout << "Variación Total aniso. de la imagen: " << tv_anis << std::endl;
+        std::cout << "Perímetro de los level sets: " << totalLength << std::endl;
+
+        cv::imwrite(save_path + "hist.png", hist);
+        cv::imwrite(save_path + "original.png", img);
+        cv::imwrite(save_path + "displayImage.png", displayImage);
     }
 
     return 0;
