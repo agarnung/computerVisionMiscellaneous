@@ -1,6 +1,23 @@
 #include <iostream>
 
-using namespace std;
+#include <opencv4/opencv2/opencv.hpp>
+
+#include "matplotlibcpp.h"
+
+namespace plt = matplotlibcpp;
+
+void plotCentralRow(const cv::Mat& image, const std::string& title, std::string color)
+{
+    int row = image.rows / 2;
+    std::vector<double> values;
+
+    for (int col = 0; col < image.cols; ++col)
+    {
+        values.push_back(static_cast<double>(image.at<uchar>(row, col)));
+    }
+
+    plt::plot(values, {{"label", title}, {"color", color}});
+}
 
 int main()
 {
@@ -17,68 +34,81 @@ int main()
      *  @see https://github.com/sansuiso/ComputersDontSee/blob/master/src/dct_denoising/main_cds_dct_denoising.cpp
      */
     {
-        //        cv::Mat image = cv::imread("/home/alejandro/Imágenes/noisyImages/2024-06-12_08-56_3.png", cv::IMREAD_GRAYSCALE);
-        //        cv::Size workingSize(512, 512);
-        //        cv::resize(image, image,workingSize, 0.0, 0.0, cv::INTER_LINEAR_EXACT);
-        //        image.convertTo(image, CV_32F, 1.0 / 255.0);
+        cv::Mat image = cv::imread("/home/alejandro/Pictures/duna.jpg", cv::IMREAD_GRAYSCALE);
+        cv::Size workingSize(512, 512);
+        cv::resize(image, image,workingSize, 0.0, 0.0, cv::INTER_LINEAR_EXACT);
+        image.convertTo(image, CV_32F, 1.0 / 255.0);
 
-        //        // Agregar ruido
-        //        float sigmaNoise = 1e-1;
-        //        cv::Mat noise(image.size(), image.type());
-        //        cv::randn(noise, 0, sigmaNoise);
-        //        cv::Mat noisy_image = image + noise;
+        // Agregar ruido
+        float sigmaNoise = 1e-1;
+        cv::Mat noise(image.size(), image.type());
+        cv::randn(noise, 0, sigmaNoise);
+        cv::Mat noisy_image = image + noise;
 
-        //        // Hard-thresholding
-        //        cv::Mat dct;
-        //        cv::dct(noisy_image, dct);
-        //        float hard_threshold = 3.2 * sigmaNoise;
-        //        for (int y = 0; y < dct.rows; ++y)
-        //        {
-        //            float* p_x = dct.ptr<float>(y);
-        //            for (int x = 0; x < dct.cols; ++x)
-        //            {
-        //                float absX = std::fabs(p_x[x]);
-        //                p_x[x] = (absX > hard_threshold) ? p_x[x] : 0.0f;
-        //            }
-        //        }
-        //        cv::Mat hardCleanf;
-        //        cv::idct(dct, hardCleanf);
+        // Hard-thresholding
+        cv::Mat dct;
+        cv::dct(noisy_image, dct);
+        float hard_threshold = 3.2 * sigmaNoise;
+        for (int y = 0; y < dct.rows; ++y)
+        {
+            float* p_x = dct.ptr<float>(y);
+            for (int x = 0; x < dct.cols; ++x)
+            {
+                float absX = std::fabs(p_x[x]);
+                p_x[x] = (absX > hard_threshold) ? p_x[x] : 0.0f;
+            }
+        }
+        cv::Mat hardCleanf;
+        cv::idct(dct, hardCleanf);
 
-        //        // Soft-thresholding
-        //        cv::Mat softDCT = dct.clone();
-        //        float soft_threshold = 1.5 * sigmaNoise;
-        //        for (int y = 0; y < softDCT.rows; ++y)
-        //        {
-        //            float* p_x = softDCT.ptr<float>(y);
-        //            for (int x = 0; x < softDCT.cols; ++x)
-        //            {
-        //                float absX = std::fabs(p_x[x]);
-        //                if (absX > 1e-6)
-        //                {
-        //                    float shrinkage = std::max(0.0f, 1.0f - soft_threshold / absX);
-        //                    p_x[x] *= shrinkage;
-        //                }
-        //                else
-        //                {
-        //                    p_x[x] = 0.0f;
-        //                }
-        //            }
-        //        }
-        //        cv::Mat softCleanf;
-        //        cv::idct(softDCT, softCleanf);
+        // Soft-thresholding
+        cv::Mat softDCT = dct.clone();
+        float soft_threshold = 1.5 * sigmaNoise;
+        for (int y = 0; y < softDCT.rows; ++y)
+        {
+            float* p_x = softDCT.ptr<float>(y);
+            for (int x = 0; x < softDCT.cols; ++x)
+            {
+                float absX = std::fabs(p_x[x]);
+                if (absX > 1e-6)
+                {
+                    float shrinkage = std::max(0.0f, 1.0f - soft_threshold / absX);
+                    p_x[x] *= shrinkage;
+                }
+                else
+                {
+                    p_x[x] = 0.0f;
+                }
+            }
+        }
+        cv::Mat softCleanf;
+        cv::idct(softDCT, softCleanf);
 
-        //        cv::imshow("Original Image", image);
-        //        cv::imshow("Noisy Image", noisy_image);
-        //        cv::imshow("Hard-Threshold Denoised", hardCleanf);
-        //        cv::imshow("Soft-Threshold Denoised", softCleanf);
-        //        noisy_image.convertTo(noisy_image, CV_8UC1, 255.0);
-        //        image.convertTo(image, CV_8UC1, 255.0);
-        //        hardCleanf.convertTo(hardCleanf, CV_8UC1, 255.0);
-        //        softCleanf.convertTo(softCleanf, CV_8UC1, 255.0);
-        //        std::cout << "Noisy image PSNR:\t\t" << cv::PSNR(noisy_image, image) << std::endl;
-        //        std::cout << "Reconstruction (Hard) PSNR:\t" << cv::PSNR(hardCleanf, image) << std::endl;
-        //        std::cout << "Reconstruction (Soft) PSNR:\t" << cv::PSNR(softCleanf, image) << std::endl;
-        //        cv::waitKey(0);
+        cv::imshow("Original Image", image);
+        cv::imshow("Noisy Image", noisy_image);
+        cv::imshow("Hard-Threshold Denoised", hardCleanf);
+        cv::imshow("Soft-Threshold Denoised", softCleanf);
+        noisy_image.convertTo(noisy_image, CV_8UC1, 255.0);
+        image.convertTo(image, CV_8UC1, 255.0);
+        hardCleanf.convertTo(hardCleanf, CV_8UC1, 255.0);
+        softCleanf.convertTo(softCleanf, CV_8UC1, 255.0);
+        std::cout << "Noisy image PSNR:\t\t" << cv::PSNR(noisy_image, image) << std::endl;
+        std::cout << "Reconstruction (Hard) PSNR:\t" << cv::PSNR(hardCleanf, image) << std::endl;
+        std::cout << "Reconstruction (Soft) PSNR:\t" << cv::PSNR(softCleanf, image) << std::endl;
+
+        noisy_image.convertTo(noisy_image, CV_8UC1, 255.0);
+        plt::figure_size(800, 400);
+        plotCentralRow(image, "Original", "blue");
+        plotCentralRow(noisy_image, "Noisy", "red");
+        plotCentralRow(hardCleanf, "Hard Denoised", "green");
+        plotCentralRow(softCleanf, "Soft Denoised", "purple");
+        plt::legend();
+        plt::title("Central Row Intensity Profile");
+        plt::xlabel("Pixel Position");
+        plt::ylabel("Intensity");
+        plt::show();
+
+        cv::waitKey(0);
     }
 
     return 0;
