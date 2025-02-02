@@ -1,7 +1,13 @@
 TEMPLATE = app
-CONFIG += console c++17
-CONFIG -= app_bundle
-CONFIG -= qt
+
+CONFIG += c++20
 
 SOURCES += \
-        main.cpp
+    main.cpp \
+
+HEADERS += \
+
+CONFIG += link_pkgconfig
+PKGCONFIG += opencv4
+
+QMAKE_CXXFLAGS += -O3 -march=native
