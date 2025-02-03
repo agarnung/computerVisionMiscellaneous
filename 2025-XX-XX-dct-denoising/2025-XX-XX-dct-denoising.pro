@@ -1,20 +1,24 @@
-TEMPLATE = app
+QT += core widgets gui
 
 CONFIG += c++20
 
-SOURCES += \
-    main.cpp \
+TEMPLATE = app
 
-HEADERS += \
+SOURCES += \
+        main.cpp \
 
 CONFIG += link_pkgconfig
 PKGCONFIG += opencv4
 
+LIBS += -L/usr/lib/x86_64-linux-gnu \
+        -L/usr/lib \
+
+MOC_DIR = moc # Esto debería forzar la generación de archivos moc en el directorio moc/
+
 INCLUDEPATH += /opt/matplotlib-cpp
+INCLUDEPATH += /usr/include/python3.10
 
-PYTHON_VER = 3.10
-PYTHON_PATH = /usr/include/python$${PYTHON_VER}
-INCLUDEPATH += $$PYTHON_PATH
-LIBS += -L/usr/lib/python$${PYTHON_VER}/config-$(shell python3-config --abiflags) -lpython$${PYTHON_VER}
+LIBS += -lpython3.10
 
-QMAKE_CXXFLAGS += -O3 -march=native
+QMAKE_CXXFLAGS += -O3 -march=native # Flags de compilador para mejorar eficiencia de código máquina vectorizando operaciones
+

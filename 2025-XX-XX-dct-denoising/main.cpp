@@ -2,7 +2,7 @@
 
 #include <opencv4/opencv2/opencv.hpp>
 
-#include "matplotlibcpp.h"
+#include <matplotlibcpp.h>
 
 namespace plt = matplotlibcpp;
 
@@ -21,26 +21,28 @@ void plotCentralRow(const cv::Mat& image, const std::string& title, std::string 
 
 int main()
 {
+    setenv("MPLBACKEND", "TkAgg", 1);
+
     /**
      * Denoising mediante hard-thresholding y soft-thresholding mediante DTC
      * La idea es eliminar los coeficientes de la DCT pequeños, pues serán los que alberguen menos información, pero
      * se perderán detalles agudos, i.e. se reducirá ruido de alta frecuencia pero inevitablemente también señal
      *  - Hard-thresholding: Establece a cero los coeficientes DCT menores que un umbral, eliminando
      *                       agresivamente el ruido, pero puede perder detalles finos.
-     *                       DCT_hard_thresholded(x) = {x ​si ∣x∣ > T, 0 si ∣x∣ ≤ T}​
+     *                       hard_thresholding(x) = {x ​si ∣x∣ > T, 0 si ∣x∣ ≤ T}​
      *  - Soft-thresholding: Reduce los coeficientes pequeños sin eliminarlos completamente a no ser que sean muy pequeños,
      *                       ofreciendo una transición más suave y preservando más detalles.
-     *                       DCT_hard_thresholded(x) = sign(x) ⋅ max(0, ∣x∣ − T)
+     *                       soft_thresholding(x) = sign(x) ⋅ max(0, ∣x∣ − T)
      *  @see https://github.com/sansuiso/ComputersDontSee/blob/master/src/dct_denoising/main_cds_dct_denoising.cpp
      */
     {
-        cv::Mat image = cv::imread("/home/alejandro/Pictures/duna.jpg", cv::IMREAD_GRAYSCALE);
+        cv::Mat image = cv::imread("/media/sf_shared_folder/ImageProcessingSamples/peppers2.tif", cv::IMREAD_GRAYSCALE);
         cv::Size workingSize(512, 512);
         cv::resize(image, image,workingSize, 0.0, 0.0, cv::INTER_LINEAR_EXACT);
         image.convertTo(image, CV_32F, 1.0 / 255.0);
 
         // Agregar ruido
-        float sigmaNoise = 1e-1;
+        float sigmaNoise = 0.1;
         cv::Mat noise(image.size(), image.type());
         cv::randn(noise, 0, sigmaNoise);
         cv::Mat noisy_image = image + noise;
@@ -84,10 +86,52 @@ int main()
         cv::Mat softCleanf;
         cv::idct(softDCT, softCleanf);
 
-        cv::imshow("Original Image", image);
-        cv::imshow("Noisy Image", noisy_image);
-        cv::imshow("Hard-Threshold Denoised", hardCleanf);
-        cv::imshow("Soft-Threshold Denoised", softCleanf);
+        bool showImages = true;
+        if (showImages)
+        {
+           cv::imshow("Original Image", image);
+           cv::imshow("Noisy Image", noisy_image);
+           cv::imshow("Hard-Threshold Denoised", hardCleanf);
+           cv::imshow("Soft-Threshold Denoised", softCleanf);
+        }
+        else
+        {
+            int row = image.rows / 2;
+
+            std::vector<double> xValues(image.cols);
+            for (size_t i = 0; i < xValues.size(); ++i) xValues[i] = static_cast<double>(i);
+
+            std::vector<double> yOriginal, yNoisy, yHard, ySoft;
+            for (int col = 0; col < image.cols; ++col)
+            {
+                yOriginal.push_back(static_cast<double>(image.at<uchar>(row, col)));
+                yNoisy.push_back(static_cast<double>(noisy_image.at<uchar>(row, col)));
+                yHard.push_back(static_cast<double>(hardCleanf.at<uchar>(row, col)));
+                ySoft.push_back(static_cast<double>(softCleanf.at<uchar>(row, col)));
+            }
+
+            plt::figure_size(1080, image.cols);
+            plt::plot(xValues, yOriginal, {{"label", "Original"}, {"color", "g"}});
+            plt::plot(xValues, yNoisy, {{"label", "Noisy"}, {"color", "k"}});
+            plt::plot(xValues, yHard, {{"label", "Hard-Threshold"}, {"color", "r"}});
+            plt::plot(xValues, ySoft, {{"label", "Soft-Threshold"}, {"color", "b"}});
+            plt::title("Image Profiles Comparison");
+            plt::xlabel("Point");
+            plt::ylabel("Pixel Intensity");
+            plt::legend();
+            plt::show();
+            // plt::save("/opt/proyectos/agarnung.github.io/assets/blog_images/2025-01-30-cpp-1d-visualization/labels.png", 200);
+
+            plt::figure_size(1080, image.cols);
+            plt::plot(xValues, yHard, {{"label", "Hard-Threshold"}, {"color", "r"}});
+            plt::plot(xValues, ySoft, {{"label", "Soft-Threshold"}, {"color", "b"}});
+            plt::title("Thresholding Comparison");
+            plt::xlabel("Point");
+            plt::ylabel("Pixel Intensity");
+            plt::legend();
+            plt::show();
+        }
+
         noisy_image.convertTo(noisy_image, CV_8UC1, 255.0);
         image.convertTo(image, CV_8UC1, 255.0);
         hardCleanf.convertTo(hardCleanf, CV_8UC1, 255.0);
@@ -96,20 +140,9 @@ int main()
         std::cout << "Reconstruction (Hard) PSNR:\t" << cv::PSNR(hardCleanf, image) << std::endl;
         std::cout << "Reconstruction (Soft) PSNR:\t" << cv::PSNR(softCleanf, image) << std::endl;
 
-        noisy_image.convertTo(noisy_image, CV_8UC1, 255.0);
-        plt::figure_size(800, 400);
-        plotCentralRow(image, "Original", "blue");
-        plotCentralRow(noisy_image, "Noisy", "red");
-        plotCentralRow(hardCleanf, "Hard Denoised", "green");
-        plotCentralRow(softCleanf, "Soft Denoised", "purple");
-        plt::legend();
-        plt::title("Central Row Intensity Profile");
-        plt::xlabel("Pixel Position");
-        plt::ylabel("Intensity");
-        plt::show();
-
         cv::waitKey(0);
     }
 
     return 0;
 }
+
