@@ -31,4 +31,3 @@ include ($(DSILIBS_SRC_PATH)/dsilibs.pri)
 
 HEADERS += \
     functions.h \
-    functions.h
