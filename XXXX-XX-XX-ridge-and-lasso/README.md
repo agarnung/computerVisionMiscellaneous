@@ -2,3 +2,5 @@ Explicar historia de los dos grandes amigos/enemigos ridge y lasso https://myweb
 
 Hacer un caso práctico en python con problema real
 
+Ver también https://www.linkedin.com/feed/update/urn:li:activity:7295388323374587905/ (Machine Learning Community (Moderated)Machine Learning Community Sreedath Panat)
+
