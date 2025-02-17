@@ -134,7 +134,7 @@ void drawHistogram2(
     cv::Size textSizeX = cv::getTextSize("255", fontFace, fontScale, thickness, &baseline);
     cv::Size textSizeY = cv::getTextSize("10000", fontFace, fontScale, thickness, &baseline);
 
-    int margin_left = textSizeY.width + 30;
+    int margin_left = textSizeY.width + 50;
     int margin_bottom = textSizeX.height + 30;
     int margin_right = textSizeY.width / 2 + 30;
     int margin_top = textSizeX.height / 2 + 40;
@@ -196,21 +196,21 @@ void drawHistogram2(
         cv::Mat labelMat = cv::Mat::zeros(textSizeY.height + 20, textSizeY.width + 20, CV_8UC3);
         labelMat.setTo(backgroundColor);
         cv::putText(labelMat, yLabel,
-                    cv::Point(10, textSizeY.height + 10),
+                    cv::Point(0, textSizeY.height + 10),
                     fontFace, fontScale, borderColor, thickness);
         cv::rotate(labelMat, rotatedLabel, cv::ROTATE_90_COUNTERCLOCKWISE);
 
-        int yLabelX = margin_left - 90;
+        int yLabelX = margin_left - 75;
         int yLabelY = margin_top + (hist_h / 2) - (rotatedLabel.rows / 2);
         rotatedLabel.copyTo(histImage(cv::Rect(yLabelX, yLabelY, rotatedLabel.cols, rotatedLabel.rows)));
     }
 
     if (!title.empty()) {
-        double titleFontScale = 0.5; // Aumentar el tamaño de la fuente
-        int titleThickness = 2;   // Aumentar el grosor del texto
+        double titleFontScale = 0.5;
+        int titleThickness = 2;
         cv::Size titleSize = cv::getTextSize(title, fontFace, titleFontScale, titleThickness, &baseline);
-        int titleX = margin_left + (hist_w / 2) - (titleSize.width / 2); // Centrar el título
-        int titleY = margin_top - 10; // Margen superior
+        int titleX = margin_left + (hist_w / 2) - (titleSize.width / 2);
+        int titleY = margin_top - 10;
         cv::putText(histImage, title,
                     cv::Point(titleX, titleY),
                     fontFace, titleFontScale, borderColor, titleThickness);
@@ -235,7 +235,7 @@ void drawHistogram2(
         int value = cvRound(percentiles[i] * histMax);
         int y_pos = hist_h + margin_top - cvRound(percentiles[i] * hist_h);
         cv::putText(histImage, std::to_string(value),
-                    cv::Point(5, y_pos + textSizeY.height / 2),
+                    cv::Point(50, y_pos + textSizeY.height / 2),
                     fontFace, fontScale, borderColor, thickness);
         cv::line(histImage,
                  cv::Point(margin_left, y_pos),
@@ -643,19 +643,19 @@ int main()
         drawHistogram2(
             hist,
             "/opt/proyectos/unpublished-posts/unpublised_data/unpublised_images/XXXX-XX-XX-crafting-my-histogram/hist2D_9.png",
-            400, // hist_h
-            3,   // bin_w
-            2,   // bin_spacing
-            cv::Scalar(0, 0, 255), // evenBinColor
-            cv::Scalar(0, 255, 0), // oddBinColor
-            cv::Scalar(240, 241, 240), // backgroundColor
-            cv::Scalar(0, 0, 0), // borderColor
-            cv::Scalar(200, 200, 200), // gridColor
-            cv::Scalar(150, 150, 150), // percentileLineColor
-            1.0, // scaleFactor
-            "Histograma de Intensidad", // título
-            "Intensidad de pixeles", // leyenda del eje X
-            "Frecuencia" // leyenda del eje Y
+            800,                        // hist_h
+            3,                          // bin_w
+            2,                          // bin_spacing
+            cv::Scalar(0, 0, 255),      // evenBinColor
+            cv::Scalar(0, 255, 0),      // oddBinColor
+            cv::Scalar(240, 241, 240),  // backgroundColor
+            cv::Scalar(0, 0, 0),        // borderColor
+            cv::Scalar(200, 200, 200),  // gridColor
+            cv::Scalar(150, 150, 150),  // percentileLineColor
+            1.0,                        // scaleFactor
+            "Intensity Histogram",      // title
+            "Pixel Intensity",          // X-axis label
+            "Frequency"                 // Y-axis label
             );
     }
 
