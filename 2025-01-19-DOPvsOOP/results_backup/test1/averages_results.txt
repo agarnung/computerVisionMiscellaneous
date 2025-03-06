@@ -1,2 +1,0 @@
-Promedio_Tiempo_OOP_Bad, Promedio_Ciclos_OOP_Bad, Promedio_Tiempo_OOP_Good_DOP, Promedio_Ciclos_OOP_Good_DOP, Promedio_Tiempo_OOP_Good_FooPadding, Promedio_Ciclos_OOP_Good_FooPadding
-0.007125, 19146098, 0.005607, 15065259, 0.005779, 15528527
