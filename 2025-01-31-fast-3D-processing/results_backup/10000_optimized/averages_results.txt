@@ -1,0 +1,2 @@
+avgOpenCVDirect, avgOpenCVPtr, avgOOpenCVPtrVec, avgEigen, avgParallel, avgSIMD
+0.012940, 0.002763, 0.002612, 0.006591, 0.002079, 0.002680
