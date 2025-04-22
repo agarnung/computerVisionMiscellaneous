@@ -78,7 +78,7 @@ def show_3d_surface(img: np.ndarray, plane: np.ndarray, title: str = "Original i
     plt.show()
 
 if __name__ == "__main__":
-    img_path = "/opt/unpublished-posts/unpublised_data/unpublised_images/XXXX-XX-XX-naive-even-ilumination/images/8.png"
+    img_path = "/opt/agarnung.github.io/assets/blog_images/2025-04-22-naive-even-ilumination/8.png"
     img = cv2.imread(img_path, cv2.IMREAD_UNCHANGED)
     number_file = os.path.splitext(os.path.basename(img_path))[0]
 
