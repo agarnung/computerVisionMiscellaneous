@@ -1,0 +1,78 @@
+1. RESUMEN Y OBJETIVOS
+
+Motivación de la tesis:
+
+Las nubes de puntos 3D son fundamentales en aplicaciones como conducción autónoma, robótica e inspección industrial, pero su procesamiento enfrenta desafíos críticos debido al ruido no determinista (iluminación, vibraciones, ruido electrónico) y la ausencia de conectividad estructural. Los métodos actuales, incluso los basados en aprendizaje profundo, luchan por preservar detalles geométricos clave en entornos realistas. Esta tesis busca desarrollar filtros adaptativos robustos que eliminen ruido complejo sin depender de grandes volúmenes de datos etiquetados, integrando técnicas matemáticas avanzadas (optimización, PDEs) y adaptando enfoques 2D al dominio 3D.
+
+A continuación se esquematiza el flujo general del problema que se pretende resolver y, marcadas en verde, las partes trabajadas hasta el momento. Más adelante se trazará una lista de objetivos completados.
+
+ 
+
+Objetivos generales:
+
+O1 - Diseñar filtros adaptativos eficientes y generalizables a diversas geometrías, densidades y tipos de ruido.
+O2 - Preservar detalles geométricos (bordes, esquinas) en presencia de ruido real no Gaussiano.
+O3 - Desarrollar algoritmos paralelizables para aplicaciones en tiempo real.
+O4 - Integrar atributos adicionales (color, normales) para enriquecer el denoising.
+O5 - Reducir la dependencia de datos sintéticos y ajustes manuales mediante principios matemáticos explícitos.
+
+A continuación se muestra el plan de trabajo orientativo de esta tesis:
+
+ 
+T1. Revisión bibliográfica sobre técnicas avanzadas de visión por computador, deep learning y matemáticas aplicadas, enfocadas al problema.
+T2. Análisis de problemas y limitaciones de los métodos actuales en el filtrado 3D.
+T3. Planteamiento de nuevos algoritmos para cumplir con los objetivos planteados.
+T4. Implementación de los modelos 3D propuestos en aplicaciones sintéticas y reales.
+T5. Creación de conjuntos de datos para poner a prueba y evaluar los modelos.
+T6. Análisis y validación de resultados para cada problema enfrentado.
+T7. Recopilación de resultados para la memoria de la tesis doctoral y redacción de artículos científicos en revistas indexadas y conferencias.
+
+En consecuencia con estos objetivos y las tareas programadas en la propuesta, hasta el momento se han avanzado en los siguientes aspectos:
+
+Tarea		Descripción					Estado 		              
+T1		Revisión bibliográfica				 Completada
+T2		Análisis de problemas				 Completada
+T3		Planteamiento de algoritmos			 Completada
+T4		Implementación en entornos reales		 Pendiente
+T5		Creación de conjuntos de datos y métricas		 Pendiente
+T6		Validación de resultados				 Pendiente
+T7		Redacción de resultados, artículos y memoria	 En marcha
+
+2. AVANCES DURANTE EL PERIODO
+
+Relación con el plan de trabajo original (T1-T7):
+
+Los avances se centran en T1 (revisión bibliográfica), T2 (análisis de limitaciones) y T3 (planteamiento de algoritmos de denoising).
+
+Progresos clave:
+
+1 - Estudio crítico de las limitaciones de métodos existentes frente a ruido no Gaussiano y geometrías complejas. 
+2 - Identificación de fallos en la preservación de detalles en presencia de outliers y variaciones de densidad.
+3 - Configuración de un entorno de desarrollo con Docker, PD-Flow, Open3D y bibliotecas propias en Python/C++.
+4 - Migración a WSL y optimización de soporte GPU para procesamiento intensivo.
+5 - Filtros basados en grafos para aprovechar relaciones espaciales en nubes no estructuradas (Graph Signal Processing, Jacobi, Tikhonov).
+6 - Técnicas de optimización no convexa para equilibrio entre suavizado y preservación de bordes (denoising con técnicas L0, filtros bilaterales y TV isotrópica/anisotrópica).
+7 - Experimentos con difusión anisotrópica adaptada de métodos 2D (e.g., Perona-Malik).
+8 - Exploración de estrategias no supervisadas para reducir dependencia de datos etiquetados.
+9 - Desarrollo de un widget 3D personalizado (OpenMesh + Qt) para visualización interactiva.
+10 - Uso de un cuaderno de laboratorio virtual (Markdown) estructurado por objetivos, con exportación a GitHub.
+11 - Evaluación cuantitativa de métodos en CloudCompare y desarrollo de métricas personalizadas.
+
+3. FORMACIÓN TRANSVERSAL
+
+- Durante este periodo se ha completado el curso Análisis Estadístico de Datos con R (Nivel Avanzado) de formación transversal específica (9 horas).  
+- Se planea cursar el curso Integridad en la investigación científica del grupo G9 (fechas 2/6/2025 al 13/6/2025) (30 horas).
+
+4. PUBLICACIONES
+
+1 - Artículo en preparación: “Noise in 3D Denoising: A Comprehensive Survey” (primer autor). Se propone una taxonomía tridimensional para clasificar fuentes de ruido (estadístico, interferencias, imperfecciones de adquisición).
+2 - Coautoría: “A Novel Approach to Speed Up Hampel Filter for Outlier Detection”. Artículo en revisión sobre técnicas de registro de nubes de puntos, relacionado indirectamente con la tesis.
+
+Tareas del plan de trabajo:
+
+T4: Implementación de algoritmos en entornos reales.
+T5: Desarrollo de métricas cuantitativas para evaluar preservación de detalles geométricos.
+T6: Redacción de dos artículos sobre filtros basados en grafos y métodos no supervisados.
+
+CONCLUSIÓN
+Esta investigación avanza hacia soluciones innovadoras para el denoising de nubes de puntos 3D, priorizando la robustez ante condiciones adversas y la eficiencia computacional. Los resultados preliminares demuestran el potencial de los filtros basados en grafos y técnicas no supervisadas, que serán validadas en escenarios sintéticos y reales. La integración de principios matemáticos explícitos y aprendizaje automático posiciona esta tesis como un aporte clave para aplicaciones críticas en entornos clave como la digitalización, AR/VR, industria y percepción robótica.
