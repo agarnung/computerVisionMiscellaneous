@@ -1,0 +1,687 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<title>Fourier Face — descriptores de Fourier en vivo</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<style>
+  :root{
+    --bg:#12141a; --panel:#1b1e27; --panel2:#20242f; --border:#2c3140;
+    --text:#e8eaf0; --muted:#8891a5; --accent:#5ee6c8; --accent2:#ff6b6b;
+  }
+  *{box-sizing:border-box;}
+  body{
+    margin:0; background:var(--bg); color:var(--text);
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+    padding:24px 16px 60px;
+  }
+  h1{font-size:1.35rem; margin:0 0 4px;}
+  .subtitle{color:var(--muted); font-size:0.9rem; margin:0 0 22px; max-width:760px;}
+  .layout{max-width:1080px; margin:0 auto;}
+  .panel{
+    background:var(--panel); border:1px solid var(--border); border-radius:10px;
+    padding:16px 18px; margin-bottom:18px;
+  }
+  .panel h2{font-size:0.95rem; margin:0 0 12px; color:var(--muted); font-weight:600; text-transform:uppercase; letter-spacing:.04em;}
+  .row{display:flex; flex-wrap:wrap; gap:10px; align-items:center;}
+  button, .file-btn{
+    background:var(--panel2); color:var(--text); border:1px solid var(--border);
+    padding:9px 16px; border-radius:7px; cursor:pointer; font-size:0.9rem;
+    transition:background .15s, border-color .15s;
+  }
+  button:hover:not(:disabled), .file-btn:hover{background:#262b38; border-color:#3a4154;}
+  button:disabled{opacity:.4; cursor:not-allowed;}
+  button.primary{background:var(--accent); color:#08251f; border-color:var(--accent); font-weight:600;}
+  button.primary:hover:not(:disabled){background:#7cf0d6;}
+  input[type=file]{display:none;}
+  .canvases{display:flex; flex-wrap:wrap; gap:16px; justify-content:center;}
+  .canvas-box{flex:1 1 320px; min-width:280px;}
+  .canvas-box h3{font-size:0.8rem; color:var(--muted); margin:0 0 6px; font-weight:500;}
+  canvas, video{
+    width:100%; max-width:420px; border-radius:8px; background:#05060a;
+    border:1px solid var(--border); display:block; margin:0 auto;
+  }
+  #resultCanvas{max-width:480px;}
+  .canvas-box{text-align:center;}
+  .slider-row{display:flex; align-items:center; gap:14px; margin-top:4px;}
+  input[type=range]{flex:1; accent-color:var(--accent);}
+  .readout{font-size:0.85rem; color:var(--muted); min-width:190px; text-align:right;}
+  .readout b{color:var(--text);}
+  .status{font-size:0.82rem; color:var(--muted); margin-top:10px; min-height:1.2em;}
+  .status.err{color:var(--accent2);}
+  label.check{display:flex; align-items:center; gap:6px; font-size:0.85rem; color:var(--muted); cursor:pointer;}
+  input[type=number]{
+    width:64px; background:var(--panel2); color:var(--text); border:1px solid var(--border);
+    border-radius:5px; padding:5px 7px; font-size:0.85rem;
+  }
+  input[type=number]:invalid{border-color:var(--accent2);}
+  select{
+    background:var(--panel2); color:var(--text); border:1px solid var(--border);
+    border-radius:5px; padding:5px 7px; font-size:0.85rem;
+  }
+  textarea{white-space:pre; overflow-x:auto;}
+  textarea::placeholder{color:var(--muted);}
+  details.advanced{
+    margin-top:12px; border:1px solid var(--border); border-radius:8px;
+    padding:10px 12px; background:#00000022;
+  }
+  details.advanced summary{
+    cursor:pointer; font-size:0.85rem; color:var(--muted); user-select:none;
+  }
+  details.advanced summary:hover{color:var(--text);}
+  details.advanced[open] summary{color:var(--text); margin-bottom:4px;}
+  footer{text-align:center; color:var(--muted); font-size:0.78rem; margin-top:30px;}
+  code{background:#00000055; padding:1px 5px; border-radius:4px;}
+</style>
+</head>
+<body>
+
+<div class="layout">
+  <h1>Fourier Face</h1>
+  <p class="subtitle">
+    Captura tu cara (cámara o foto), extrae los bordes con Canny, calcula los
+    <strong>descriptores de Fourier</strong> de cada contorno cerrado y
+    reconstrúyelos truncando los armónicos: pocos armónicos → siluetas
+    simplificadas (casi elipses); muchos → recuperas el borde original.
+  </p>
+
+  <div class="panel">
+    <h2>1. Fuente</h2>
+    <div class="row">
+      <button id="btnCam">Activar cámara</button>
+      <button id="btnShot" disabled>Capturar foto</button>
+      <label class="file-btn" for="fileInput">Subir foto…</label>
+      <input type="file" id="fileInput" accept="image/*">
+      <label class="check"><input type="checkbox" id="mirrorChk" checked> espejo (cámara)</label>
+    </div>
+    <div class="canvases" style="margin-top:14px;">
+      <div class="canvas-box">
+        <h3>Vista previa</h3>
+        <video id="video" autoplay playsinline muted></video>
+      </div>
+      <div class="canvas-box">
+        <h3>Fuente capturada</h3>
+        <canvas id="sourceCanvas"></canvas>
+      </div>
+    </div>
+  </div>
+
+  <div class="panel">
+    <h2>2. Pipeline</h2>
+    <div class="row">
+      <button id="btnRun" class="primary" disabled>▶ Ejecutar (Canny + descriptores de Fourier)</button>
+      <label class="check"><input type="checkbox" id="edgesBgChk" checked> mostrar Canny de fondo</label>
+    </div>
+    <details class="advanced">
+      <summary>Parámetros avanzados de Canny (opcional)</summary>
+      <div class="row" style="margin-top:10px;">
+        <label class="check">umbral bajo
+          <input type="number" id="cannyLow" min="0" max="500" step="1" value="50">
+        </label>
+        <label class="check">umbral alto
+          <input type="number" id="cannyHigh" min="0" max="500" step="1" value="150">
+        </label>
+        <label class="check">suavizado (blur)
+          <select id="blurSize">
+            <option value="1">ninguno</option>
+            <option value="3">3×3</option>
+            <option value="5" selected>5×5</option>
+            <option value="7">7×7</option>
+          </select>
+        </label>
+        <button id="btnCannyDefaults">Restaurar por defecto</button>
+      </div>
+      <p class="subtitle" style="margin:8px 0 0; font-size:0.78rem;">
+        Umbrales de <code>cv.Canny</code> (bajo/alto: un píxel se considera
+        borde fuerte por encima del umbral alto, y borde débil —conservado
+        solo si conecta con uno fuerte— entre ambos). Umbrales más bajos
+        detectan más detalle (y más ruido); más altos, solo los bordes más
+        marcados. El suavizado previo reduce ruido a costa de detalle fino.
+        Los cambios se aplican en la siguiente pulsación de "Ejecutar".
+      </p>
+    </details>
+    <div class="status" id="status">Esperando a OpenCV.js…</div>
+  </div>
+
+  <div class="panel">
+    <h2>3. Nivel de simplificación</h2>
+    <div class="slider-row">
+      <span style="color:var(--muted); font-size:0.85rem;">simple</span>
+      <input type="range" id="slider" min="1" max="60" value="8" disabled>
+      <span style="color:var(--muted); font-size:0.85rem;">detallado</span>
+      <span class="readout" id="readout">—</span>
+    </div>
+    <div class="canvases" style="margin-top:14px;">
+      <div class="canvas-box" style="flex:1 1 100%; max-width:640px;">
+        <h3>Reconstrucción con descriptores de Fourier truncados</h3>
+        <canvas id="resultCanvas"></canvas>
+      </div>
+    </div>
+    <div class="row" style="margin-top:14px; justify-content:center;">
+      <button id="btnDownloadImg" disabled>💾 Descargar imagen (PNG)</button>
+    </div>
+    <div class="row" style="margin-top:16px; justify-content:center;">
+      <label class="check">rango del barrido: desde
+        <input type="number" id="sweepFrom" min="1" value="1">
+      </label>
+      <label class="check">hasta
+        <input type="number" id="sweepTo" min="1" value="60">
+      </label>
+      <span style="font-size:0.8rem; color:var(--muted);">armónicos</span>
+      <button id="btnDownloadGif" disabled>🎞️ Descargar GIF (barrido)</button>
+    </div>
+    <div class="status" id="gifStatus"></div>
+  </div>
+
+  <footer>
+    OpenCV.js se carga de forma asíncrona desde docs.opencv.org — la primera
+    ejecución puede tardar unos segundos en inicializar el runtime WASM.
+    Todo el procesamiento ocurre localmente en el navegador; no se envía nada
+    a ningún servidor.
+  </footer>
+</div>
+
+<!-- OpenCV.js (WASM). Carga asíncrona; ver onOpenCvLoad(). -->
+<script async src="https://docs.opencv.org/4.x/opencv.js" onload="onOpenCvLoad();"></script>
+
+<script>
+'use strict';
+
+// ---------------------------------------------------------------------------
+// Estado global
+// ---------------------------------------------------------------------------
+const MAX_SIDE = 400;      // tamaño máximo (px) del lado mayor de la imagen fuente
+const MIN_CONTOUR_PTS = 12; // contornos más cortos que esto se descartan (ruido)
+
+let cvReady = false;
+let stream = null;
+let hasSource = false;
+
+// Un elemento por contorno retenido tras Ejecutar:
+// { n, reZ: Float64Array, imZ: Float64Array }
+let contoursFD = [];
+let resultW = 0, resultH = 0;
+
+const els = {};
+['video','sourceCanvas','resultCanvas','btnCam','btnShot','btnRun','fileInput',
+ 'slider','readout','status','mirrorChk','edgesBgChk',
+ 'btnDownloadImg','btnDownloadGif','gifStatus','sweepFrom','sweepTo',
+ 'cannyLow','cannyHigh','blurSize','btnCannyDefaults']
+  .forEach(id => els[id] = document.getElementById(id));
+
+// canvas oculto auxiliar para el mapa de bordes Canny (fondo del resultado)
+const edgesCanvas = document.createElement('canvas');
+
+// ---------------------------------------------------------------------------
+// Arranque de OpenCV.js
+// ---------------------------------------------------------------------------
+function onOpenCvLoad() {
+  cv['onRuntimeInitialized'] = () => {
+    cvReady = true;
+    setStatus('OpenCV.js listo. Activa la cámara o sube una foto.');
+    updateRunButton();
+  };
+}
+
+function setStatus(msg, isError) {
+  els.status.textContent = msg;
+  els.status.classList.toggle('err', !!isError);
+}
+
+function updateRunButton() {
+  els.btnRun.disabled = !(cvReady && hasSource);
+}
+
+// ---------------------------------------------------------------------------
+// 1. Fuente: cámara o fichero
+// ---------------------------------------------------------------------------
+els.btnCam.addEventListener('click', async () => {
+  try {
+    stream = await navigator.mediaDevices.getUserMedia({ video: { width: 640, height: 480 }, audio: false });
+    els.video.srcObject = stream;
+    els.video.style.transform = els.mirrorChk.checked ? 'scaleX(-1)' : 'none';
+    els.btnShot.disabled = false;
+    setStatus('Cámara activa. Encuadra tu cara y pulsa "Capturar foto".');
+  } catch (err) {
+    setStatus('No se pudo acceder a la cámara: ' + err.message, true);
+  }
+});
+
+els.mirrorChk.addEventListener('change', () => {
+  els.video.style.transform = els.mirrorChk.checked ? 'scaleX(-1)' : 'none';
+});
+
+els.btnShot.addEventListener('click', () => {
+  drawSourceFromMedia(els.video, els.mirrorChk.checked);
+  hasSource = true;
+  updateRunButton();
+  setStatus('Foto capturada. Pulsa "Ejecutar" para procesarla.');
+});
+
+els.fileInput.addEventListener('change', (e) => {
+  const file = e.target.files[0];
+  if (!file) return;
+  const img = new Image();
+  img.onload = () => {
+    drawSourceFromMedia(img, false);
+    hasSource = true;
+    updateRunButton();
+    setStatus('Foto cargada. Pulsa "Ejecutar" para procesarla.');
+  };
+  img.onerror = () => setStatus('No se pudo leer la imagen.', true);
+  img.src = URL.createObjectURL(file);
+});
+
+// Dibuja un <video> o <img> en sourceCanvas, escalado para que el lado mayor
+// mida como mucho MAX_SIDE px (mantiene el pipeline rápido y acotado).
+function drawSourceFromMedia(media, mirror) {
+  const w = media.videoWidth || media.naturalWidth;
+  const h = media.videoHeight || media.naturalHeight;
+  const scale = Math.min(1, MAX_SIDE / Math.max(w, h));
+  const outW = Math.max(1, Math.round(w * scale));
+  const outH = Math.max(1, Math.round(h * scale));
+
+  const canvas = els.sourceCanvas;
+  canvas.width = outW;
+  canvas.height = outH;
+  const ctx = canvas.getContext('2d');
+
+  ctx.save();
+  if (mirror) { ctx.translate(outW, 0); ctx.scale(-1, 1); }
+  ctx.drawImage(media, 0, 0, outW, outH);
+  ctx.restore();
+}
+
+// ---------------------------------------------------------------------------
+// 2. Pipeline pesado: Canny + contornos + DFT directa por contorno
+// ---------------------------------------------------------------------------
+els.btnRun.addEventListener('click', runPipeline);
+
+els.btnCannyDefaults.addEventListener('click', () => {
+  els.cannyLow.value = 50;
+  els.cannyHigh.value = 150;
+  els.blurSize.value = 5;
+});
+
+function runPipeline() {
+  els.btnRun.disabled = true;
+  setStatus('Procesando…');
+
+  // Se deja respirar al hilo de UI antes del trabajo síncrono pesado.
+  requestAnimationFrame(() => {
+    try {
+      contoursFD = computeContourFourierDescriptors(els.sourceCanvas);
+      resultW = els.sourceCanvas.width;
+      resultH = els.sourceCanvas.height;
+
+      const longest = contoursFD.reduce((m, c) => Math.max(m, c.n), 0);
+      const sliderMax = Math.max(2, Math.min(120, Math.ceil(longest / 2)));
+      els.slider.max = sliderMax;
+      if (+els.slider.value > sliderMax) els.slider.value = sliderMax;
+      els.slider.disabled = contoursFD.length === 0;
+      els.btnDownloadImg.disabled = contoursFD.length === 0;
+      els.btnDownloadGif.disabled = contoursFD.length === 0;
+
+      // Rango del barrido para el GIF: por defecto, todo el recorrido
+      // disponible; el usuario puede estrecharlo o desplazarlo a mano.
+      els.sweepFrom.max = sliderMax;
+      els.sweepTo.max = sliderMax;
+      els.sweepFrom.value = 1;
+      els.sweepTo.value = sliderMax;
+
+      setStatus(
+        contoursFD.length
+          ? `${contoursFD.length} contornos retenidos (≥ ${MIN_CONTOUR_PTS} puntos). Mueve el slider para simplificar.`
+          : 'No se encontraron contornos suficientemente largos. Prueba con más luz o encuadre más cercano.'
+      );
+      redraw();
+    } catch (err) {
+      console.error(err);
+      setStatus('Error durante el procesamiento: ' + err.message, true);
+    } finally {
+      updateRunButton();
+    }
+  });
+}
+
+// Ejecuta Canny + findContours sobre el canvas fuente y devuelve, por cada
+// contorno retenido, su transformada discreta de Fourier completa (n
+// coeficientes), lista para truncarse y reconstruirse en redraw().
+function computeContourFourierDescriptors(sourceCanvas) {
+  const src = cv.imread(sourceCanvas);
+  const gray = new cv.Mat();
+  const blurred = new cv.Mat();
+  const edges = new cv.Mat();
+  const contours = new cv.MatVector();
+  const hierarchy = new cv.Mat();
+
+  try {
+    const blurSize = Math.max(1, +els.blurSize.value | 1); // fuerza impar (OpenCV lo exige)
+    let low = Math.max(0, +els.cannyLow.value || 0);
+    let high = Math.max(0, +els.cannyHigh.value || 0);
+    if (low > high) [low, high] = [high, low]; // Canny exige umbral bajo <= alto
+
+    cv.cvtColor(src, gray, cv.COLOR_RGBA2GRAY);
+    if (blurSize > 1) cv.GaussianBlur(gray, blurred, new cv.Size(blurSize, blurSize), 0);
+    else gray.copyTo(blurred);
+    cv.Canny(blurred, edges, low, high);
+    cv.findContours(edges, contours, hierarchy, cv.RETR_LIST, cv.CHAIN_APPROX_NONE);
+
+    // Se guarda el mapa de bordes como fondo del canvas de resultado.
+    edgesCanvas.width = edges.cols;
+    edgesCanvas.height = edges.rows;
+    cv.imshow(edgesCanvas, edges);
+
+    const result = [];
+    for (let i = 0; i < contours.size(); i++) {
+      const cnt = contours.get(i);
+      const n = cnt.rows; // cnt es Nx1, 2 canales (x,y)
+      if (n >= MIN_CONTOUR_PTS) {
+        const xs = new Float64Array(n), ys = new Float64Array(n);
+        const data = cnt.data32S; // Int32, [x0,y0,x1,y1,...]
+        for (let k = 0; k < n; k++) { xs[k] = data[2 * k]; ys[k] = data[2 * k + 1]; }
+        result.push(dft(xs, ys));
+      }
+      cnt.delete();
+    }
+    return result;
+  } finally {
+    src.delete(); gray.delete(); blurred.delete(); edges.delete();
+    contours.delete(); hierarchy.delete();
+  }
+}
+
+// DFT directa (O(n^2)) de la curva compleja z_k = x_k + i*y_k. Con contornos
+// de a lo sumo unos pocos miles de puntos esto tarda milisegundos; no hace
+// falta una FFT real para este tamaño de problema.
+function dft(xs, ys) {
+  const n = xs.length;
+  const reZ = new Float64Array(n), imZ = new Float64Array(n);
+  const twoPiOverN = 2 * Math.PI / n;
+  for (let m = 0; m < n; m++) {
+    let re = 0, im = 0;
+    const w = twoPiOverN * m;
+    for (let k = 0; k < n; k++) {
+      const ang = -w * k;
+      const c = Math.cos(ang), s = Math.sin(ang);
+      re += xs[k] * c - ys[k] * s;
+      im += xs[k] * s + ys[k] * c;
+    }
+    reZ[m] = re; imZ[m] = im;
+  }
+  return { n, reZ, imZ };
+}
+
+// ---------------------------------------------------------------------------
+// 3. Slider: truncado + reconstrucción (barato, se recalcula en vivo)
+// ---------------------------------------------------------------------------
+els.slider.addEventListener('input', redraw);
+els.edgesBgChk.addEventListener('change', redraw);
+
+function redraw() {
+  const K = +els.slider.value; // se conservan las frecuencias f con |f| <= K
+  els.readout.innerHTML = `<b>${K}</b> armónico${K === 1 ? '' : 's'} por contorno (de ${els.slider.max} máx.)`;
+
+  const canvas = els.resultCanvas;
+  canvas.width = resultW; canvas.height = resultH;
+  renderResult(canvas.getContext('2d'), resultW, resultH, K, els.edgesBgChk.checked);
+}
+
+// Dibuja el resultado (fondo + Canny opcional + contornos reconstruidos con
+// K armónicos) sobre cualquier contexto de canvas del tamaño dado. La usan
+// tanto la vista en vivo (redraw) como cada frame del GIF de barrido.
+function renderResult(ctx, w, h, K, showEdgesBg) {
+  ctx.clearRect(0, 0, w, h);
+  ctx.fillStyle = '#05060a';
+  ctx.fillRect(0, 0, w, h);
+
+  if (showEdgesBg && edgesCanvas.width) {
+    ctx.globalAlpha = 0.28;
+    ctx.drawImage(edgesCanvas, 0, 0, w, h);
+    ctx.globalAlpha = 1;
+  }
+
+  ctx.strokeStyle = '#5ee6c8';
+  ctx.lineWidth = 1.4;
+  ctx.lineJoin = 'round';
+
+  for (const c of contoursFD) reconstructAndStroke(ctx, c, K);
+}
+
+// Reconstruye la curva cerrada usando sólo los coeficientes de Fourier con
+// |frecuencia| <= K (los índices m > n/2 representan frecuencias negativas,
+// por convención de la DFT), y la traza como polilínea cerrada.
+function reconstructAndStroke(ctx, { n, reZ, imZ }, K) {
+  const kept = [];
+  const half = n >> 1;
+  for (let m = 0; m <= half; m++) {
+    const f = (m <= half) ? m : m - n;
+    if (Math.abs(f) <= K) kept.push(m);
+  }
+  for (let m = half + 1; m < n; m++) {
+    const f = m - n; // frecuencia negativa equivalente
+    if (Math.abs(f) <= K) kept.push(m);
+  }
+
+  const pts = new Array(n);
+  const twoPiOverN = 2 * Math.PI / n;
+  for (let k = 0; k < n; k++) {
+    let re = 0, im = 0;
+    for (const m of kept) {
+      const ang = twoPiOverN * m * k;
+      const c = Math.cos(ang), s = Math.sin(ang);
+      re += reZ[m] * c - imZ[m] * s;
+      im += reZ[m] * s + imZ[m] * c;
+    }
+    pts[k] = [re / n, im / n];
+  }
+
+  ctx.beginPath();
+  ctx.moveTo(pts[0][0], pts[0][1]);
+  for (let k = 1; k < n; k++) ctx.lineTo(pts[k][0], pts[k][1]);
+  ctx.closePath();
+  ctx.stroke();
+}
+
+// ---------------------------------------------------------------------------
+// 4. Descargas: imagen PNG del resultado actual, y GIF animado con un
+// barrido adelante-y-atrás del slider (nivel de simplificación).
+// ---------------------------------------------------------------------------
+els.btnDownloadImg.addEventListener('click', () => {
+  triggerDownload(els.resultCanvas.toDataURL('image/png'), 'fourier-face.png');
+});
+
+els.btnDownloadGif.addEventListener('click', generateSweepGif);
+
+function triggerDownload(href, filename) {
+  const a = document.createElement('a');
+  a.href = href;
+  a.download = filename;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+}
+
+// Construye la secuencia de K (armónicos conservados) para el barrido:
+// sube de min a max en `steps` pasos enteros (sin repetir valores
+// consecutivos) y luego baja simétricamente, sin duplicar los dos extremos,
+// para que el GIF haga un vaivén y cierre el bucle con naturalidad.
+function buildSweepSequence(minK, maxK, steps) {
+  const fwd = [];
+  for (let i = 0; i < steps; i++) {
+    const t = steps === 1 ? 0 : i / (steps - 1);
+    const k = Math.round(minK + t * (maxK - minK));
+    if (fwd.length === 0 || fwd[fwd.length - 1] !== k) fwd.push(k);
+  }
+  const back = fwd.slice(1, -1).reverse();
+  return fwd.concat(back);
+}
+
+async function generateSweepGif() {
+  els.btnDownloadGif.disabled = true;
+  els.btnDownloadImg.disabled = true;
+  els.slider.disabled = true;
+
+  try {
+    const hardMax = +els.slider.max; // tope real, según el contorno más largo tras Ejecutar
+    let minK = Math.round(+els.sweepFrom.value);
+    let maxK = Math.round(+els.sweepTo.value);
+    if (!Number.isFinite(minK)) minK = 1;
+    if (!Number.isFinite(maxK)) maxK = hardMax;
+    minK = Math.min(hardMax, Math.max(1, minK));
+    maxK = Math.min(hardMax, Math.max(1, maxK));
+    if (minK > maxK) [minK, maxK] = [maxK, minK];
+    els.sweepFrom.value = minK; els.sweepTo.value = maxK; // refleja el rango ya recortado
+
+    const steps = Math.max(2, Math.min(24, maxK - minK + 1));
+    const sequence = buildSweepSequence(minK, maxK, steps);
+
+    const w = resultW, h = resultH;
+    const off = document.createElement('canvas');
+    off.width = w; off.height = h;
+    const octx = off.getContext('2d');
+    const showEdges = els.edgesBgChk.checked;
+
+    const frames = [];
+    for (let i = 0; i < sequence.length; i++) {
+      renderResult(octx, w, h, sequence[i], showEdges);
+      const { data } = octx.getImageData(0, 0, w, h);
+      frames.push(rgbaToPaletteIndices(data, w * h));
+      if (i % 3 === 0) {
+        els.gifStatus.textContent = `Generando GIF… frame ${i + 1}/${sequence.length}`;
+        await new Promise(requestAnimationFrame); // cede el hilo para no congelar la UI
+      }
+    }
+
+    els.gifStatus.textContent = 'Codificando GIF…';
+    await new Promise(requestAnimationFrame);
+    const bytes = encodeGif(w, h, frames, 6); // 6 = 60ms/frame (~16.6 fps)
+
+    const blob = new Blob([bytes], { type: 'image/gif' });
+    const url = URL.createObjectURL(blob);
+    triggerDownload(url, 'fourier-face-sweep.gif');
+    setTimeout(() => URL.revokeObjectURL(url), 4000);
+
+    els.gifStatus.textContent =
+      `GIF descargado: ${sequence.length} frames, ${(bytes.length / 1024).toFixed(0)} KB.`;
+  } catch (err) {
+    console.error(err);
+    els.gifStatus.textContent = 'Error generando el GIF: ' + err.message;
+  } finally {
+    els.btnDownloadGif.disabled = false;
+    els.btnDownloadImg.disabled = false;
+    els.slider.disabled = false;
+  }
+}
+
+// --- Paleta fija RGB332 (8x8x4 = 256 colores exactos, sin necesidad de
+// cuantización adaptativa) y su índice directo por píxel. ---------------
+function quantizeIndex(r, g, b) {
+  const rl = Math.round(r / 255 * 7);
+  const gl = Math.round(g / 255 * 7);
+  const bl = Math.round(b / 255 * 3);
+  return (rl << 5) | (gl << 2) | bl;
+}
+function buildRgb332Palette() {
+  const pal = [];
+  for (let r = 0; r < 8; r++)
+    for (let g = 0; g < 8; g++)
+      for (let b = 0; b < 4; b++)
+        pal.push([Math.round(r * 255 / 7), Math.round(g * 255 / 7), Math.round(b * 255 / 3)]);
+  return pal; // exactamente 256 entradas
+}
+function rgbaToPaletteIndices(data, nPixels) {
+  const out = new Uint8Array(nPixels);
+  for (let i = 0; i < nPixels; i++) {
+    out[i] = quantizeIndex(data[4 * i], data[4 * i + 1], data[4 * i + 2]);
+  }
+  return out;
+}
+
+// --- Codificador GIF89a minimalista (validado por separado con round-trip
+// LZW y con Pillow antes de integrarlo aquí). Sin compresión real: cada
+// píxel se emite como código literal, pero la contabilidad de la tabla
+// (ensanche de codeSize en 512/1024/2048 y Clear antes de 4096) es idéntica
+// a la de un decodificador estándar, así que el flujo es válido igualmente.
+class BitWriter {
+  constructor() { this.bytes = []; this.cur = 0; this.curBits = 0; }
+  writeCode(code, size) {
+    this.cur |= (code << this.curBits);
+    this.curBits += size;
+    while (this.curBits >= 8) { this.bytes.push(this.cur & 0xFF); this.cur >>= 8; this.curBits -= 8; }
+  }
+  flush() { if (this.curBits > 0) { this.bytes.push(this.cur & 0xFF); this.cur = 0; this.curBits = 0; } }
+}
+
+function lzwEncodeIndices(indices) {
+  const CLEAR = 256, EOI = 257;
+  const bw = new BitWriter();
+  let codeSize = 9, nextCode = 258, justCleared = true;
+  bw.writeCode(CLEAR, codeSize);
+  for (let i = 0; i < indices.length; i++) {
+    bw.writeCode(indices[i], codeSize);
+    if (justCleared) {
+      justCleared = false;
+    } else {
+      nextCode++;
+      if (nextCode === 4096) {
+        bw.writeCode(CLEAR, codeSize);
+        codeSize = 9; nextCode = 258; justCleared = true;
+      } else if (nextCode === (1 << codeSize) && codeSize < 12) {
+        codeSize++;
+      }
+    }
+  }
+  bw.writeCode(EOI, codeSize);
+  bw.flush();
+  return bw.bytes;
+}
+
+function u16le(n) { return [n & 0xFF, (n >> 8) & 0xFF]; }
+
+// Ensambla un GIF89a animado y con bucle infinito (extensión NETSCAPE2.0) a
+// partir de una lista de frames, cada uno ya como Uint8Array de índices de
+// paleta (ver rgbaToPaletteIndices). delayCentis: retardo entre frames en
+// centésimas de segundo.
+function encodeGif(width, height, frames, delayCentis) {
+  const out = [];
+  const push = (arr) => { for (const b of arr) out.push(b); };
+
+  push([0x47, 0x49, 0x46, 0x38, 0x39, 0x61]); // "GIF89a"
+  push(u16le(width)); push(u16le(height));
+  push([0xF7]); // GCT presente, 256 entradas
+  push([0x00]); // color de fondo
+  push([0x00]); // relación de aspecto
+
+  for (const [r, g, b] of buildRgb332Palette()) push([r, g, b]);
+
+  // NETSCAPE2.0: bucle infinito
+  push([0x21, 0xFF, 0x0B]);
+  push(Array.from('NETSCAPE2.0', c => c.charCodeAt(0)));
+  push([0x03, 0x01, 0x00, 0x00, 0x00]);
+
+  for (const indices of frames) {
+    push([0x21, 0xF9, 0x04, 0x04]); // Graphic Control Extension: disposal=1, sin transparencia
+    push(u16le(delayCentis));
+    push([0x00, 0x00]);
+
+    push([0x2C]); // Image Descriptor
+    push(u16le(0)); push(u16le(0));
+    push(u16le(width)); push(u16le(height));
+    push([0x00]); // sin tabla de color local
+
+    const lzwBytes = lzwEncodeIndices(indices);
+    push([8]); // LZW minimum code size (paleta de 256 colores)
+    for (let off = 0; off < lzwBytes.length; off += 255) {
+      const chunk = lzwBytes.slice(off, off + 255);
+      push([chunk.length]); push(chunk);
+    }
+    push([0x00]); // fin del bloque de datos de imagen
+  }
+
+  push([0x3B]); // trailer
+  return Uint8Array.from(out);
+}
+</script>
+</body>
+</html>
