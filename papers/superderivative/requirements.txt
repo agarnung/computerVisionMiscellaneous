@@ -1,0 +1,9 @@
+# Paper superderivative — Python dependencies
+# Install in a virtual environment:
+#   python3 -m venv .venv
+#   .venv/bin/pip install -r requirements.txt
+
+numpy>=1.24
+scipy>=1.10
+matplotlib>=3.7      # only for demo figure
+scikit-image>=0.21    # optional, for SSIM metric

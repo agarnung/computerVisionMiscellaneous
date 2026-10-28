@@ -1,0 +1,26 @@
+% Shared layout for all papers in this repository.
+% Abstracts: keep <= 250 words (IEEEtran) and avoid long numeric dumps.
+% Keeps captions, table fonts, table widths and float placement consistent.
+\usepackage{float}
+\usepackage{placeins}
+\usepackage{caption}
+\captionsetup{
+  font=footnotesize,
+  labelfont=bf,
+  labelsep=colon,
+  justification=centering,
+  skip=4pt
+}
+\captionsetup[table]{position=above}
+\renewcommand{\arraystretch}{1.05}
+\setlength{\tabcolsep}{4pt}
+\setlength{\textfloatsep}{8pt plus 2pt minus 2pt}
+\setlength{\floatsep}{8pt plus 2pt minus 2pt}
+\setlength{\intextsep}{8pt plus 2pt minus 2pt}
+\renewcommand{\topfraction}{0.9}
+\renewcommand{\bottomfraction}{0.8}
+\renewcommand{\textfraction}{0.07}
+\renewcommand{\floatpagefraction}{0.8}
+\setcounter{topnumber}{4}
+\setcounter{totalnumber}{5}
+\setcounter{bottomnumber}{2}

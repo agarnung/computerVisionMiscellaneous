@@ -1,0 +1,287 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Superderivative Edge Detection Demo</title>
+  <style>
+    :root {
+      --bg: #f5f5f5;
+      --panel: #ffffff;
+      --accent: #2563eb;
+      --text: #1f2937;
+      --muted: #6b7280;
+      --border: #d1d5db;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      line-height: 1.5;
+    }
+    header {
+      background: var(--panel);
+      border-bottom: 1px solid var(--border);
+      padding: 1rem 1.5rem;
+    }
+    header h1 { margin: 0; font-size: 1.25rem; }
+    header p { margin: 0.25rem 0 0; color: var(--muted); font-size: 0.9rem; }
+    main { padding: 1.5rem; max-width: 1400px; margin: 0 auto; }
+    #dropzone {
+      border: 2px dashed var(--border);
+      border-radius: 0.75rem;
+      padding: 2rem;
+      text-align: center;
+      background: var(--panel);
+      color: var(--muted);
+      cursor: pointer;
+      transition: border-color 0.2s, background 0.2s;
+    }
+    #dropzone.dragover { border-color: var(--accent); background: #eff6ff; }
+    #dropzone p { margin: 0; }
+    #fileinput { display: none; }
+    #controls {
+      margin-top: 1rem;
+      background: var(--panel);
+      border: 1px solid var(--border);
+      border-radius: 0.75rem;
+      padding: 1rem 1.25rem;
+    }
+    .control-row {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 0.75rem;
+      margin-bottom: 0.75rem;
+    }
+    .control-row:last-child { margin-bottom: 0; }
+    .control-row label { font-size: 0.95rem; }
+    .control-row input[type="range"] { flex: 1 1 180px; min-width: 120px; }
+    .radio-group { display: flex; gap: 1rem; flex-wrap: wrap; }
+    .radio-group label { font-weight: normal; cursor: pointer; }
+    button {
+      background: var(--accent);
+      color: white;
+      border: none;
+      padding: 0.6rem 1.2rem;
+      border-radius: 0.5rem;
+      font-size: 1rem;
+      cursor: pointer;
+    }
+    button:disabled { opacity: 0.5; cursor: not-allowed; }
+    #status { margin-top: 0.75rem; text-align: center; color: var(--muted); min-height: 1.5rem; }
+    #gallery {
+      margin-top: 1.5rem;
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+      gap: 1rem;
+    }
+    .card {
+      background: var(--panel);
+      border: 1px solid var(--border);
+      border-radius: 0.5rem;
+      overflow: hidden;
+    }
+    .card h3 {
+      margin: 0;
+      padding: 0.5rem 0.75rem;
+      font-size: 0.95rem;
+      background: #f9fafb;
+      border-bottom: 1px solid var(--border);
+    }
+    .card img { display: block; width: 100%; height: auto; image-rendering: auto; }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>Superderivative Edge Detection</h1>
+    <p>Upload an image and compare the parametric superderivative operator (raw + thresholded) with the selected classical operator, Roberts and Canny.</p>
+  </header>
+  <main>
+    <div id="dropzone">
+      <p id="droptext">Drag &amp; drop an image here or click to choose a file</p>
+      <input type="file" id="fileinput" accept="image/*">
+    </div>
+
+    <div id="controls">
+      <div class="control-row">
+        <strong>Derivative kernel</strong>
+        <div class="radio-group">
+          <label><input type="radio" name="kernel" value="sobel" checked> Sobel</label>
+          <label><input type="radio" name="kernel" value="scharr"> Scharr</label>
+          <label><input type="radio" name="kernel" value="prewitt"> Prewitt</label>
+        </div>
+      </div>
+      <div class="control-row">
+        <strong>Superderivative mode</strong>
+        <div class="radio-group">
+          <label><input type="radio" name="mode" value="parametric" checked> Parametric</label>
+          <label><input type="radio" name="mode" value="regularized"> Regularized</label>
+          <label><input type="radio" name="mode" value="local_mean"> Local mean</label>
+          <label><input type="radio" name="mode" value="radial"> Radial SD</label>
+          <label><input type="radio" name="mode" value="radial_l"> Radial score</label>
+        </div>
+      </div>
+      <div class="control-row">
+        <label for="threshold">Edge threshold: <span id="threshold-val">0.15</span></label>
+        <input type="range" id="threshold" min="0" max="1" step="0.05" value="0.15">
+      </div>
+      <div class="control-row">
+        <label for="canny">Canny sigma: <span id="canny-val">1.5</span></label>
+        <input type="range" id="canny" min="0.5" max="3" step="0.1" value="1.5">
+      </div>
+      <div class="control-row" id="p-row">
+        <label for="p">Exponent p: <span id="p-val">0.5</span></label>
+        <input type="range" id="p" min="0" max="1.5" step="0.05" value="0.5">
+      </div>
+      <div class="control-row" id="alpha-row">
+        <label for="alpha">Regularization alpha: <span id="alpha-val">0.05</span></label>
+        <input type="range" id="alpha" min="0" max="0.5" step="0.01" value="0.05">
+      </div>
+      <div class="control-row" id="radius-row">
+        <label for="radius">Local mean radius: <span id="radius-val">5</span></label>
+        <input type="range" id="radius" min="1" max="15" step="1" value="5">
+      </div>
+      <div class="control-row">
+        <button id="processbtn" disabled>Process</button>
+      </div>
+    </div>
+
+    <div id="status"></div>
+    <div id="gallery"></div>
+  </main>
+
+  <script>
+    const dropzone = document.getElementById('dropzone');
+    const droptext = document.getElementById('droptext');
+    const fileinput = document.getElementById('fileinput');
+    const processbtn = document.getElementById('processbtn');
+    const status = document.getElementById('status');
+    const gallery = document.getElementById('gallery');
+    const threshold = document.getElementById('threshold');
+    const thresholdVal = document.getElementById('threshold-val');
+    const canny = document.getElementById('canny');
+    const cannyVal = document.getElementById('canny-val');
+    const pSlider = document.getElementById('p');
+    const pVal = document.getElementById('p-val');
+    const alpha = document.getElementById('alpha');
+    const alphaVal = document.getElementById('alpha-val');
+    const radius = document.getElementById('radius');
+    const radiusVal = document.getElementById('radius-val');
+    const pRow = document.getElementById('p-row');
+    const alphaRow = document.getElementById('alpha-row');
+    const radiusRow = document.getElementById('radius-row');
+
+    let currentFile = null;
+
+    function getKernel() {
+      const el = document.querySelector('input[name="kernel"]:checked');
+      return el ? el.value : 'sobel';
+    }
+
+    function getMode() {
+      const el = document.querySelector('input[name="mode"]:checked');
+      return el ? el.value : 'parametric';
+    }
+
+    function updateLabels() {
+      thresholdVal.textContent = Number(threshold.value).toFixed(2);
+      cannyVal.textContent = Number(canny.value).toFixed(1);
+      pVal.textContent = Number(pSlider.value).toFixed(2);
+      alphaVal.textContent = Number(alpha.value).toFixed(2);
+      radiusVal.textContent = Number(radius.value);
+      const mode = getMode();
+      const radial = (mode === 'radial' || mode === 'radial_l');
+      pRow.style.display = radial ? 'none' : 'flex';
+      alphaRow.style.display = (mode === 'regularized') ? 'flex' : 'none';
+      radiusRow.style.display = (mode === 'local_mean') ? 'flex' : 'none';
+    }
+
+    [threshold, canny, pSlider, alpha, radius].forEach(el => el.addEventListener('input', updateLabels));
+    document.querySelectorAll('input[name="mode"]').forEach(el => el.addEventListener('change', updateLabels));
+
+    dropzone.addEventListener('click', () => fileinput.click());
+    dropzone.addEventListener('dragover', (e) => { e.preventDefault(); dropzone.classList.add('dragover'); });
+    dropzone.addEventListener('dragleave', () => dropzone.classList.remove('dragover'));
+    dropzone.addEventListener('drop', (e) => {
+      e.preventDefault();
+      dropzone.classList.remove('dragover');
+      if (e.dataTransfer.files.length) setFile(e.dataTransfer.files[0]);
+    });
+    fileinput.addEventListener('change', () => { if (fileinput.files.length) setFile(fileinput.files[0]); });
+
+    function setFile(file) {
+      currentFile = file;
+      droptext.innerHTML = `<strong>${file.name}</strong> (${(file.size / 1024).toFixed(1)} KB)`;
+      processbtn.disabled = false;
+      status.textContent = '';
+      gallery.innerHTML = '';
+    }
+
+    function readFileAsDataURL(file) {
+      return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => resolve(reader.result);
+        reader.onerror = reject;
+        reader.readAsDataURL(file);
+      });
+    }
+
+    processbtn.addEventListener('click', async () => {
+      if (!currentFile) return;
+      processbtn.disabled = true;
+      status.textContent = 'Reading image...';
+      gallery.innerHTML = '';
+
+      try {
+        const dataUrl = await readFileAsDataURL(currentFile);
+        status.textContent = 'Processing...';
+        const payload = {
+          image: dataUrl,
+          kernel: getKernel(),
+          mode: getMode(),
+          threshold: Number(threshold.value),
+          canny_sigma: Number(canny.value),
+          p: Number(pSlider.value),
+          alpha: Number(alpha.value),
+          radius: Number(radius.value),
+        };
+        const resp = await fetch('/process', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload),
+        });
+        const data = await resp.json();
+        if (!data.ok) throw new Error(data.error || 'unknown error');
+        render(data.results);
+        status.textContent = 'Done.';
+      } catch (err) {
+        status.textContent = 'Error: ' + err.message;
+      } finally {
+        processbtn.disabled = false;
+      }
+    });
+
+    function render(results) {
+      // Ensure Original is shown first; keep the backend order for the rest.
+      const keys = Object.keys(results);
+      const order = keys.includes('Original')
+        ? ['Original', ...keys.filter(k => k !== 'Original')]
+        : keys;
+      const entries = order
+        .map(k => ({ name: k, ...results[k] }))
+        .filter(e => e.image);
+      gallery.innerHTML = entries.map(e => `
+        <div class="card">
+          <h3>${e.name}</h3>
+          <img src="${e.image}" alt="${e.name}">
+        </div>
+      `).join('');
+    }
+
+    updateLabels();
+  </script>
+</body>
+</html>

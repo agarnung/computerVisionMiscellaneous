@@ -1,0 +1,65 @@
+{
+  "dataset": "synthetic ground-truth edge images (256x256)",
+  "protocol": "best F1 over a threshold sweep with one-pixel localisation tolerance",
+  "n_thresholds": 23,
+  "threshold_min": 0.02,
+  "threshold_max": 0.9,
+  "tol_frac": 0.002762135864009951,
+  "seed": null,
+  "methods": [
+    "$E_{0.25}$",
+    "Radial SD",
+    "Sobel",
+    "Scharr",
+    "Prewitt",
+    "Roberts",
+    "Canny"
+  ],
+  "per_image_f1": {
+    "Circles": {
+      "$E_{0.25}$": 0.986,
+      "Radial SD": 0.985,
+      "Sobel": 0.986,
+      "Scharr": 0.988,
+      "Prewitt": 0.984,
+      "Roberts": 0.979,
+      "Canny": 0.98
+    },
+    "Square": {
+      "$E_{0.25}$": 1.0,
+      "Radial SD": 1.0,
+      "Sobel": 0.998,
+      "Scharr": 0.998,
+      "Prewitt": 0.998,
+      "Roberts": 0.998,
+      "Canny": 0.996
+    },
+    "Checkerboard": {
+      "$E_{0.25}$": 1.0,
+      "Radial SD": 0.942,
+      "Sobel": 0.998,
+      "Scharr": 0.998,
+      "Prewitt": 0.998,
+      "Roberts": 1.0,
+      "Canny": 0.998
+    },
+    "Triangle": {
+      "$E_{0.25}$": 1.0,
+      "Radial SD": 1.0,
+      "Sobel": 1.0,
+      "Scharr": 1.0,
+      "Prewitt": 1.0,
+      "Roberts": 0.871,
+      "Canny": 0.998
+    },
+    "Ramp": {
+      "$E_{0.25}$": 0.996,
+      "Radial SD": 0.188,
+      "Sobel": 0.996,
+      "Scharr": 0.996,
+      "Prewitt": 0.996,
+      "Roberts": 1.0,
+      "Canny": 0.996
+    }
+  }
+}
